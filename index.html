@@ -1,0 +1,784 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Story Sellers — Live OTP Tracker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Syne:wght@400;700;800&display=swap" rel="stylesheet"/>
+<style>
+:root {
+  --bg:     #050810;
+  --panel:  #0b0f1a;
+  --border: #1a2035;
+  --accent: #00e5ff;
+  --green:  #00ff88;
+  --red:    #ff3b5c;
+  --yellow: #ffd600;
+  --text:   #c8d6f0;
+  --muted:  #4a5568;
+  --glow:   0 0 20px rgba(0,229,255,.15);
+}
+
+* { margin:0; padding:0; box-sizing:border-box; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Syne', sans-serif;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* Grid bg */
+body::before {
+  content: '';
+  position: fixed; inset: 0;
+  background-image:
+    linear-gradient(rgba(0,229,255,.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,229,255,.03) 1px, transparent 1px);
+  background-size: 40px 40px;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ── HEADER ── */
+header {
+  position: relative; z-index: 10;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 18px 32px;
+  border-bottom: 1px solid var(--border);
+  background: rgba(11,15,26,.8);
+  backdrop-filter: blur(12px);
+}
+
+.logo {
+  display: flex; align-items: center; gap: 12px;
+}
+.logo-icon {
+  width: 36px; height: 36px;
+  background: linear-gradient(135deg, var(--accent), var(--green));
+  border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 18px;
+}
+.logo h1 {
+  font-size: 1.1rem; font-weight: 800;
+  letter-spacing: 2px; text-transform: uppercase;
+}
+.logo span { color: var(--accent); }
+
+.status-bar {
+  display: flex; align-items: center; gap: 20px;
+}
+.pill {
+  display: flex; align-items: center; gap: 6px;
+  padding: 6px 14px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: .75rem;
+}
+.dot {
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: var(--muted);
+  transition: background .3s;
+}
+.dot.live { background: var(--green); box-shadow: 0 0 8px var(--green); animation: pulse 2s infinite; }
+.dot.error { background: var(--red); }
+
+@keyframes pulse {
+  0%,100% { opacity: 1; }
+  50%      { opacity: .4; }
+}
+
+/* ── LAYOUT ── */
+.layout {
+  position: relative; z-index: 1;
+  display: grid;
+  grid-template-columns: 340px 1fr;
+  grid-template-rows: auto 1fr;
+  gap: 0;
+  height: calc(100vh - 73px);
+}
+
+/* ── SIDEBAR ── */
+.sidebar {
+  border-right: 1px solid var(--border);
+  display: flex; flex-direction: column;
+  overflow: hidden;
+}
+
+.sidebar-section {
+  border-bottom: 1px solid var(--border);
+  padding: 20px;
+}
+
+.section-label {
+  font-size: .65rem; font-weight: 700;
+  letter-spacing: 3px; text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 14px;
+}
+
+/* Service selector */
+.svc-grid {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.svc-btn {
+  padding: 10px 8px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  font-family: 'Syne', sans-serif;
+  font-size: .8rem; font-weight: 700;
+  cursor: pointer;
+  transition: all .2s;
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+}
+.svc-btn:hover { border-color: var(--accent); color: var(--accent); }
+.svc-btn.active {
+  border-color: var(--accent);
+  background: rgba(0,229,255,.08);
+  color: var(--accent);
+  box-shadow: var(--glow);
+}
+
+/* Range list */
+.range-list {
+  flex: 1; overflow-y: auto;
+  padding: 12px;
+  display: flex; flex-direction: column; gap: 6px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+}
+
+.range-item {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 14px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all .2s;
+}
+.range-item:hover {
+  border-color: var(--accent);
+  background: rgba(0,229,255,.05);
+}
+.range-num {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: .85rem;
+  color: var(--accent);
+}
+.range-country { font-size: .7rem; color: var(--muted); }
+.range-btn {
+  padding: 4px 10px;
+  background: rgba(0,229,255,.1);
+  border: 1px solid rgba(0,229,255,.3);
+  border-radius: 4px;
+  color: var(--accent);
+  font-size: .7rem; font-weight: 700;
+  cursor: pointer;
+  font-family: 'Syne', sans-serif;
+  transition: all .2s;
+}
+.range-btn:hover {
+  background: rgba(0,229,255,.2);
+  box-shadow: var(--glow);
+}
+
+.empty-state {
+  text-align: center; padding: 30px 20px;
+  color: var(--muted);
+  font-size: .85rem;
+  line-height: 1.6;
+}
+.empty-icon { font-size: 2rem; margin-bottom: 8px; }
+
+/* ── MAIN AREA ── */
+.main {
+  display: flex; flex-direction: column;
+  overflow: hidden;
+}
+
+/* Active numbers */
+.active-panel {
+  border-bottom: 1px solid var(--border);
+  padding: 20px 24px;
+  min-height: 160px;
+}
+
+.active-grid {
+  display: flex; flex-wrap: wrap; gap: 12px;
+  margin-top: 14px;
+}
+
+.number-card {
+  position: relative;
+  padding: 14px 18px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  min-width: 240px;
+  transition: all .3s;
+  animation: slideIn .3s ease;
+}
+
+@keyframes slideIn {
+  from { opacity: 0; transform: translateY(-10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.number-card.has-otp {
+  border-color: var(--green);
+  box-shadow: 0 0 20px rgba(0,255,136,.1);
+}
+
+.card-header {
+  display: flex; justify-content: space-between; align-items: flex-start;
+  margin-bottom: 8px;
+}
+.card-phone {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 1rem; color: var(--accent);
+}
+.card-cancel {
+  width: 20px; height: 20px;
+  background: rgba(255,59,92,.15);
+  border: 1px solid rgba(255,59,92,.3);
+  border-radius: 4px;
+  color: var(--red);
+  font-size: .7rem;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: all .2s;
+  flex-shrink: 0;
+}
+.card-cancel:hover { background: rgba(255,59,92,.3); }
+
+.card-meta {
+  display: flex; gap: 10px; flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+.tag {
+  padding: 2px 8px;
+  background: rgba(255,255,255,.05);
+  border-radius: 4px;
+  font-size: .7rem; color: var(--muted);
+}
+
+.card-timer {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: .75rem; color: var(--muted);
+  display: flex; justify-content: space-between;
+}
+.timer-val { color: var(--yellow); }
+
+.progress-bar {
+  height: 2px;
+  background: var(--border);
+  border-radius: 1px;
+  margin-top: 8px;
+  overflow: hidden;
+}
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent), var(--green));
+  border-radius: 1px;
+  transition: width 1s linear;
+}
+
+/* Copy feedback */
+.copy-btn {
+  position: absolute; top: 10px; right: 34px;
+  padding: 2px 8px;
+  background: rgba(0,229,255,.1);
+  border: 1px solid rgba(0,229,255,.2);
+  border-radius: 4px;
+  color: var(--accent);
+  font-size: .65rem;
+  cursor: pointer;
+  font-family: 'Syne', sans-serif;
+  transition: all .2s;
+}
+.copy-btn:hover { background: rgba(0,229,255,.2); }
+
+/* ── OTP LOG ── */
+.log-panel {
+  flex: 1; display: flex; flex-direction: column;
+  overflow: hidden;
+  padding: 20px 24px;
+}
+
+.log-header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 14px;
+}
+
+.log-scroll {
+  flex: 1; overflow-y: auto;
+  display: flex; flex-direction: column; gap: 8px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+  padding-right: 4px;
+}
+
+.log-entry {
+  display: grid;
+  grid-template-columns: 70px 1fr auto auto;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  border-left: 3px solid var(--green);
+  animation: logIn .4s ease;
+  transition: all .2s;
+}
+.log-entry:hover { background: rgba(255,255,255,.02); }
+
+@keyframes logIn {
+  from { opacity: 0; transform: translateX(-20px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+.log-time {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: .7rem; color: var(--muted);
+}
+.log-phone {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: .8rem; color: var(--text);
+}
+.log-svc {
+  font-size: .7rem; color: var(--muted);
+}
+.log-otp {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 1.1rem; font-weight: 700;
+  color: var(--green);
+  letter-spacing: 2px;
+}
+.log-copy {
+  padding: 4px 10px;
+  background: rgba(0,255,136,.08);
+  border: 1px solid rgba(0,255,136,.2);
+  border-radius: 4px;
+  color: var(--green);
+  font-size: .7rem;
+  cursor: pointer;
+  font-family: 'Syne', sans-serif;
+  transition: all .2s;
+  white-space: nowrap;
+}
+.log-copy:hover { background: rgba(0,255,136,.18); }
+.log-copy.copied { color: var(--yellow); border-color: var(--yellow); }
+
+.log-empty {
+  text-align: center; padding: 60px 20px;
+  color: var(--muted);
+}
+.log-empty-icon { font-size: 3rem; margin-bottom: 12px; opacity: .3; }
+
+/* ── TOAST ── */
+.toast {
+  position: fixed; bottom: 24px; right: 24px;
+  padding: 12px 20px;
+  background: rgba(0,255,136,.15);
+  border: 1px solid var(--green);
+  border-radius: 8px;
+  color: var(--green);
+  font-family: 'Share Tech Mono', monospace;
+  font-size: .85rem;
+  z-index: 1000;
+  animation: toastIn .3s ease;
+  display: none;
+}
+.toast.show { display: block; }
+@keyframes toastIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Loading spinner */
+.spinner {
+  display: inline-block;
+  width: 14px; height: 14px;
+  border: 2px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin .6s linear infinite;
+  vertical-align: middle;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+/* Responsive */
+@media (max-width: 768px) {
+  .layout { grid-template-columns: 1fr; }
+  .sidebar { border-right: none; border-bottom: 1px solid var(--border); max-height: 50vh; }
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-icon">📡</div>
+    <h1>Story <span>Sellers</span> OTP</h1>
+  </div>
+  <div class="status-bar">
+    <div class="pill">
+      <div class="dot" id="ws-dot"></div>
+      <span id="ws-label">Connecting...</span>
+    </div>
+    <div class="pill">
+      <span>⚡</span>
+      <span id="active-count">0 Active</span>
+    </div>
+    <div class="pill">
+      <span>📨</span>
+      <span id="otp-count">0 OTPs</span>
+    </div>
+  </div>
+</header>
+
+<div class="layout">
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <!-- Service selector -->
+    <div class="sidebar-section">
+      <div class="section-label">Select Service</div>
+      <div class="svc-grid">
+        <button class="svc-btn active" onclick="selectSvc('facebook')" id="svc-facebook">📘 Facebook</button>
+        <button class="svc-btn" onclick="selectSvc('whatsapp')" id="svc-whatsapp">🟢 WhatsApp</button>
+        <button class="svc-btn" onclick="selectSvc('telegram')" id="svc-telegram">✈️ Telegram</button>
+        <button class="svc-btn" onclick="selectSvc('discord')" id="svc-discord">🎮 Discord</button>
+      </div>
+    </div>
+
+    <!-- Range list -->
+    <div class="sidebar-section" style="padding-bottom:8px;">
+      <div class="section-label" style="margin-bottom:0; display:flex; justify-content:space-between; align-items:center;">
+        <span>Available Ranges</span>
+        <button onclick="loadRanges()" style="background:none;border:none;color:var(--accent);cursor:pointer;font-size:.75rem;" id="refresh-btn">↻ Refresh</button>
+      </div>
+    </div>
+    <div class="range-list" id="range-list">
+      <div class="empty-state">
+        <div class="empty-icon">📡</div>
+        Select a service to load ranges
+      </div>
+    </div>
+  </div>
+
+  <!-- MAIN -->
+  <div class="main">
+    <!-- Active numbers -->
+    <div class="active-panel">
+      <div class="section-label">Active Numbers</div>
+      <div class="active-grid" id="active-grid">
+        <div style="color:var(--muted);font-size:.85rem;padding:20px 0;">
+          No active numbers. Select a range and click GET NUMBER.
+        </div>
+      </div>
+    </div>
+
+    <!-- OTP Log -->
+    <div class="log-panel">
+      <div class="log-header">
+        <div class="section-label" style="margin-bottom:0;">Live OTP Log</div>
+        <button onclick="clearLog()" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:.75rem;">Clear</button>
+      </div>
+      <div class="log-scroll" id="log-scroll">
+        <div class="log-empty" id="log-empty">
+          <div class="log-empty-icon">📭</div>
+          Waiting for OTPs...<br/>
+          <span style="font-size:.8rem;">OTPs will appear here in real-time</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const API = window.location.origin;
+const WS  = (location.protocol === 'https:' ? 'wss' : 'ws') + '://' + location.host + '/ws';
+
+let ws;
+let currentSvc   = 'facebook';
+let activeCards  = {};   // phone → card element
+let otpTotal     = 0;
+let otpEntries   = [];
+
+// ── WebSocket ────────────────────────────────────────────────────────────────
+function connect() {
+  ws = new WebSocket(WS);
+
+  ws.onopen = () => {
+    setStatus('live', 'Live');
+  };
+
+  ws.onclose = () => {
+    setStatus('error', 'Reconnecting...');
+    setTimeout(connect, 2000);
+  };
+
+  ws.onmessage = (e) => {
+    const msg = JSON.parse(e.data);
+
+    if (msg.type === 'init') {
+      msg.active.forEach(a => upsertCard(a));
+      msg.log.forEach(l => addLogEntry(l, false));
+    }
+    else if (msg.type === 'tick') {
+      msg.active.forEach(a => upsertCard(a));
+      // Remove cards not in tick
+      const phones = msg.active.map(a => a.phone);
+      Object.keys(activeCards).forEach(p => {
+        if (!phones.includes(p)) removeCard(p);
+      });
+      document.getElementById('active-count').textContent = msg.active.length + ' Active';
+    }
+    else if (msg.type === 'otp') {
+      addLogEntry(msg, true);
+      otpTotal++;
+      document.getElementById('otp-count').textContent = otpTotal + ' OTPs';
+      if (activeCards[msg.phone]) {
+        activeCards[msg.phone].classList.add('has-otp');
+      }
+      showToast('🔑 OTP: ' + msg.otp + ' ← ' + msg.phone.slice(-6));
+    }
+    else if (msg.type === 'new_number') {
+      upsertCard({ phone: msg.phone, svc: msg.svc, country: msg.country, elapsed: 0, otps: 0 });
+    }
+    else if (msg.type === 'expired' || msg.type === 'cancelled') {
+      removeCard(msg.phone);
+    }
+  };
+}
+
+function setStatus(state, label) {
+  const dot = document.getElementById('ws-dot');
+  const lbl = document.getElementById('ws-label');
+  dot.className = 'dot ' + state;
+  lbl.textContent = label;
+}
+
+// ── Number Cards ─────────────────────────────────────────────────────────────
+function upsertCard(data) {
+  const { phone, svc, country, elapsed, otps } = data;
+  const grid = document.getElementById('active-grid');
+
+  // Remove placeholder
+  const placeholder = grid.querySelector('[data-placeholder]');
+  if (placeholder) placeholder.remove();
+
+  let card = activeCards[phone];
+  if (!card) {
+    card = document.createElement('div');
+    card.className = 'number-card';
+    card.innerHTML = `
+      <div class="card-header">
+        <div class="card-phone">${phone}</div>
+        <button class="copy-btn" onclick="copyText('${phone}', this)">COPY</button>
+        <button class="card-cancel" onclick="cancelNumber('${phone}')">✕</button>
+      </div>
+      <div class="card-meta">
+        <span class="tag">${svc.toUpperCase()}</span>
+        <span class="tag">${country}</span>
+        <span class="tag" id="otp-tag-${phone.replace(/\+/g,'')}">${otps} OTP</span>
+      </div>
+      <div class="card-timer">
+        <span>⏱ <span class="timer-val" id="timer-${phone.replace(/\+/g,'')}">0s</span></span>
+        <span id="tl-${phone.replace(/\+/g,'')}" style="color:var(--muted)">10m left</span>
+      </div>
+      <div class="progress-bar">
+        <div class="progress-fill" id="prog-${phone.replace(/\+/g,'')}" style="width:0%"></div>
+      </div>
+    `;
+    grid.appendChild(card);
+    activeCards[phone] = card;
+  }
+
+  // Update timer
+  const key = phone.replace(/\+/g,'');
+  const mins = Math.floor(elapsed/60);
+  const secs = elapsed % 60;
+  const left = Math.max(0, 600 - elapsed);
+  const lm   = Math.floor(left/60);
+  const ls   = left % 60;
+  const pct  = Math.min(100, (elapsed/600)*100);
+
+  const tv = document.getElementById('timer-' + key);
+  const tl = document.getElementById('tl-' + key);
+  const pg = document.getElementById('prog-' + key);
+  const ot = document.getElementById('otp-tag-' + key);
+
+  if (tv) tv.textContent = (mins > 0 ? mins+'m ' : '') + secs + 's';
+  if (tl) tl.textContent = lm + 'm ' + ls + 's left';
+  if (pg) pg.style.width = pct + '%';
+  if (ot) ot.textContent = otps + ' OTP';
+}
+
+function removeCard(phone) {
+  const card = activeCards[phone];
+  if (card) {
+    card.style.opacity = '0';
+    card.style.transform = 'scale(.95)';
+    setTimeout(() => { card.remove(); delete activeCards[phone]; }, 300);
+  }
+  const grid = document.getElementById('active-grid');
+  if (grid.children.length === 0) {
+    grid.innerHTML = '<div style="color:var(--muted);font-size:.85rem;padding:20px 0;" data-placeholder>No active numbers.</div>';
+  }
+}
+
+async function cancelNumber(phone) {
+  await fetch(`${API}/api/number/${encodeURIComponent(phone)}`, { method: 'DELETE' });
+  removeCard(phone);
+}
+
+// ── OTP Log ──────────────────────────────────────────────────────────────────
+function addLogEntry(data, animate) {
+  const empty = document.getElementById('log-empty');
+  if (empty) empty.remove();
+
+  const scroll = document.getElementById('log-scroll');
+  const entry  = document.createElement('div');
+  entry.className = 'log-entry';
+  if (!animate) entry.style.animation = 'none';
+
+  const id = 'copy-' + Date.now();
+  entry.innerHTML = `
+    <div class="log-time">${data.time || '--:--:--'}</div>
+    <div>
+      <div class="log-phone">${data.phone}</div>
+      <div class="log-svc">${data.svc?.toUpperCase()} · ${data.country || ''}</div>
+    </div>
+    <div class="log-otp">${data.otp}</div>
+    <button class="log-copy" id="${id}" onclick="copyText('${data.otp}', this)">Copy</button>
+  `;
+  scroll.insertBefore(entry, scroll.firstChild);
+
+  // Max 50 entries
+  while (scroll.children.length > 50) scroll.lastChild.remove();
+}
+
+function clearLog() {
+  const scroll = document.getElementById('log-scroll');
+  scroll.innerHTML = `<div class="log-empty" id="log-empty">
+    <div class="log-empty-icon">📭</div>
+    Waiting for OTPs...<br/>
+    <span style="font-size:.8rem;">OTPs will appear here in real-time</span>
+  </div>`;
+}
+
+// ── Service & Ranges ─────────────────────────────────────────────────────────
+function selectSvc(svc) {
+  currentSvc = svc;
+  document.querySelectorAll('.svc-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('svc-' + svc)?.classList.add('active');
+  loadRanges();
+}
+
+async function loadRanges() {
+  const list = document.getElementById('range-list');
+  const btn  = document.getElementById('refresh-btn');
+  list.innerHTML = '<div class="empty-state"><span class="spinner"></span><br/><br/>Loading...</div>';
+  btn.textContent = '↻ Loading';
+
+  try {
+    const r    = await fetch(`${API}/api/ranges/${currentSvc}`);
+    const data = await r.json();
+
+    btn.textContent = '↻ Refresh';
+
+    if (!data.ranges?.length) {
+      list.innerHTML = '<div class="empty-state"><div class="empty-icon">🔍</div>No ranges found.<br/>Try another service.</div>';
+      return;
+    }
+
+    list.innerHTML = '';
+    data.ranges.forEach(num => {
+      const item = document.createElement('div');
+      item.className = 'range-item';
+      item.innerHTML = `
+        <div>
+          <div class="range-num">${num}</div>
+          <div class="range-country">${getCountry(num)}</div>
+        </div>
+        <button class="range-btn" onclick="getNumber('${num}')">GET</button>
+      `;
+      list.appendChild(item);
+    });
+  } catch(e) {
+    btn.textContent = '↻ Refresh';
+    list.innerHTML = '<div class="empty-state"><div class="empty-icon">⚠️</div>Failed to load.<br/>Check server connection.</div>';
+  }
+}
+
+async function getNumber(rng) {
+  try {
+    showToast('🔄 Allocating number...');
+    const r = await fetch(`${API}/api/number`, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ range: rng, svc: currentSvc })
+    });
+    if (!r.ok) { showToast('❌ No number available'); return; }
+    const d = await r.json();
+    showToast('✅ Got: ' + d.number);
+  } catch(e) {
+    showToast('❌ Server error');
+  }
+}
+
+// ── Helpers ──────────────────────────────────────────────────────────────────
+function copyText(text, btn) {
+  navigator.clipboard.writeText(text).then(() => {
+    if (btn) {
+      const orig = btn.textContent;
+      btn.textContent = 'Copied!';
+      btn.classList.add('copied');
+      setTimeout(() => { btn.textContent = orig; btn.classList.remove('copied'); }, 1500);
+    }
+  });
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+const COUNTRIES = {"1":"USA 🇺🇸","7":"Russia 🇷🇺","20":"Egypt 🇪🇬","27":"South Africa 🇿🇦","33":"France 🇫🇷","44":"UK 🇬🇧","49":"Germany 🇩🇪","55":"Brazil 🇧🇷","62":"Indonesia 🇮🇩","86":"China 🇨🇳","91":"India 🇮🇳","92":"Pakistan 🇵🇰","225":"Ivory Coast 🇨🇮","234":"Nigeria 🇳🇬","244":"Angola 🇦🇴","254":"Kenya 🇰🇪","880":"Bangladesh 🇧🇩","966":"Saudi Arabia 🇸🇦","971":"UAE 🇦🇪","992":"Tajikistan 🇹🇯"};
+
+function getCountry(num) {
+  const s = num.replace(/\D/g,'');
+  for (const l of [4,3,2,1]) {
+    const p = s.slice(0,l);
+    if (COUNTRIES[p]) return COUNTRIES[p];
+  }
+  return 'Global 🌐';
+}
+
+// ── Init ─────────────────────────────────────────────────────────────────────
+connect();
+loadRanges();
+</script>
+</body>
+</html>
